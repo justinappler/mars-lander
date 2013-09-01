@@ -1,0 +1,269 @@
+<html>
+   <head>
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+      <script>
+         $(function() {
+            var maxVelocity = 10000;
+            var grav = 9.8;
+            var thrust = -18.0;
+            
+            var accel = grav;
+            var velocity = 0.0;
+            
+            var fuel = 400.0;
+            
+            var stopped = false;
+            var thruster = false;
+         
+            function triggerThruster() {
+               if (fuel > 0) {
+                  thruster = true;
+                  $('.flame').addClass('on');
+                  accel = grav + thrust;
+                  if (stopped) {
+                     window.setTimeout(updatePosition, 10);
+                     stopped = false;
+                  }
+               }
+            }
+            
+            function disableThruster() {
+               $('.flame').removeClass('on');
+               accel = grav;
+               thruster = false;
+            }
+            
+            $(document).keydown(function (e) {
+               if (e.which == 32) {
+                  triggerThruster();
+               }
+            });
+            
+            $(document).keyup(function (e) {
+               if (e.which == 32) {
+                  disableThruster();
+               }
+            });
+            
+            function formatNumber(num) {
+               var numString = num.toString().split(".")[0];
+               if (numString.length > 8)
+                  numString = numString.substring(0,7);
+                  
+               return numString;
+            }
+            
+            function setVelocity(vel) {
+               var marker = (vel + maxVelocity) / (maxVelocity / 200);
+               $('#speed-marker').css('top', marker + 'px');
+            }
+            
+            var textUpdate = 1;
+            var updatePosition = function () {   
+               var rocket = $('#rocket');
+               var top = parseInt(rocket.css('top'));
+
+               velocity  = velocity + accel;
+               velocity = Math.min(maxVelocity, velocity);
+               velocity = Math.max(-1 * maxVelocity, velocity);
+               
+               var pVelocity = velocity / 100;
+               var newTop = parseInt(top) + pVelocity;
+               
+               if (newTop > 740) {
+                  stopped = true;
+                  var landingVel = velocity / 100 * -1;
+                  $('.landvel').text(formatNumber(landingVel));
+                  
+                  velocity = 0;
+                  newTop = '740';
+                  
+                  if (landingVel < -3) {
+                     $('#rocket').hide();
+                     $('#explosion').show();
+                     window.setTimeout(function () {
+                        $('#explosion').hide();
+                     }, 800);
+                  }
+               }
+  
+               if (textUpdate++ % 5 == 0 || newTop == '740') {
+                  $('.vel').text(formatNumber(velocity / 100 * -1));
+                  $('.alt').text(formatNumber((newTop - 740)*-1));
+                  textUpdate = 1;
+               }
+               
+               setVelocity(velocity);
+               
+               rocket.css('top', newTop + 'px');
+               
+               if (thruster) {
+                  fuel -= 1;
+                  $('#fuel-marker').css('height', (400 - fuel) + 'px');
+                  
+                  if (fuel <= 0)
+                     disableThruster();
+               }
+               
+               if (!stopped)
+                  window.setTimeout(updatePosition, 10);
+            };
+            
+            window.setTimeout(updatePosition, 10);
+            
+         });
+      </script>
+      <style type="text/css">
+         #rocket {
+            background-image: url('lander.png');
+            background-size: 120px 84px;
+            background-repeat: no-repeat;
+            position: absolute;
+            top: 50;
+            left: 50%;
+            margin-left: -60px;
+            height: 84px;
+            width: 120px;
+            z-index: 1;
+         }
+         
+         .flame {
+            z-index: 1;
+            position: absolute;
+            top: 80px;
+            left: 57px;
+            width: 12px;
+            height: 20px;
+         }
+         
+         .flame.on {
+            background: linear-gradient(to bottom, 
+               rgba(249,242,177,1) 0%,
+               rgba(232,107,11,1) 57%,
+               rgba(239,52,22,1) 80%,
+               rgba(240,47,23,0.62) 82%,
+               rgba(231,56,39,0.24) 100%);
+         }
+         
+         #pad {
+            z-index: 0;
+            width: 200px;
+            height: 55px;
+            position: absolute;
+            top: 790px;
+            left: 50%;
+            margin-left: -100px;
+            background-image: url('pad.png');
+            background-repeat: no-repeat;
+            background-position-y: -50px;
+         }
+         
+         #space {
+            z-index: -1;
+            overflow: hidden;
+            position: relative;
+            background-image: url('surface.jpg');
+            background-repeat: no-repeat;
+            background-position: center;
+            height: 854px;
+            max-width: 960px;
+            margin: 0 auto;
+         }
+         
+         #speed-container {
+            position: absolute;
+            padding: 15px;
+            font-size: 22px;
+            background-color: #CCC;
+            border: 3px solid #aaa;
+            width: 150px;
+            top: 20;
+            left: 20;
+         }
+         
+         #speed {
+            background: linear-gradient(to bottom, 
+               rgba(42,211,42,1) 0%,
+               rgba(0,0,0,1) 51%,
+               rgba(234,37,37,1) 99%);
+            width: 20px;
+            height: 400px;
+            position: absolute;
+            top: 400px;
+            left: 30px;
+            border: 1px solid #aaa;
+         }
+         
+         #fuel {
+            background-color: red;
+            width: 20px;
+            height: 400px;
+            position: absolute;
+            top: 400px;
+            left: 60px;
+            border: 1px solid #aaa;
+         }
+         
+         #fuel-marker {
+            width: 20px;
+            height: 0px;
+            position: absolute;
+            background-color: black;
+         }
+         
+         #speed-marker {
+            margin: 0 -3px;
+            width: 26px;
+            height: 4px;
+            background-color: #fff;
+            position: absolute;
+            top: 200px;
+         }
+         
+         #explosion {
+            display: none;
+            z-index: 100;
+            width: 142px;
+            height: 200px;
+            position: absolute;
+            top: 690px;
+            left: 50%;
+            margin-left: -71px;
+            background-image: url('explosion.gif');
+            background-repeat: no-repeat;
+         }
+         
+         body { 
+            background-color: #FDA;
+            margin: 0;
+            padding: 0;
+         }
+      </style>
+   </head>
+   <body>
+      <div id="space">
+         <div id="speed-container">
+            <div>
+               <span>Alt: </span><span class="alt"></span>
+            </div>
+            <div>
+               <span>V: </span><span class="vel"></span>
+            </div>
+            <div>
+               <span>Landing V: </span><span class="landvel"></span>
+            </div>
+         </div>
+         <div id="rocket">
+            <div class="flame"></div>
+         </div>
+         <div id="explosion"></div>
+         <div id="fuel">
+            <div id="fuel-marker"></div>
+         </div>
+         <div id="speed">
+            <div id="speed-marker"></div>
+         </div>
+         <div id="pad"></div>
+      </div>
+   </body>
+</html>
